@@ -113,7 +113,8 @@ def detect_transit_censorship(raw_measurements, httpOnly=True):
             # Check if redirection IPs belong to a different country than origin_country
             if serverhost_country != actualresponse_country:
                 transit_detected = True
-                tc_confidence_score
+                transit_censored += 1
+                tc_confidence_score += CONFIDENCE_SCORE_IPCHECK_WEIGHT
 
                 # Log the Results, if needed
                 debug(
@@ -121,47 +122,58 @@ def detect_transit_censorship(raw_measurements, httpOnly=True):
                     f"instead of {origin_country} -> {serverhost_country} -> {origin_country}"
                 )
 
-            # # Extract response body and parse HTML
-            # response_body = req['response'].get('body', '')
-            # soup = BeautifulSoup(response_body, 'html.parser')
-            #
-            # # Extract text from paragraph tags
-            # paragraphs = soup.find_all('p')
-            # paragraph_texts = [p.get_text() for p in paragraphs]
-            #
-            # # Translate each paragraph text up to 400 characters into English
-            # translated_paragraphs = []
-            # for text in paragraph_texts:
-            #     if len(text) > 400:
-            #         text = text[:400]  # Limit to 400 characters
-            #
-            #     # Detect language of the text
-            #     detected_lang = detect(text)
-            #
-            #     # Translate only if detected language is not English
-            #     if detected_lang != 'en':
-            #         translated_text = model.translate(text, source_lang=detected_lang, target_lang='en')
-            #         translated_paragraphs.append(translated_text)
-            #
-            #     else:
-            #         translated_paragraphs.append(text)
-            #
-            # for translated_text in translated_paragraphs:
-            #     matches = [phrase for phrase in BASE_CENSOR_PHRASES if
-            #                re.search(phrase, translated_text, re.IGNORECASE)]
-            #
-            #     # If matches are found, analyze further
-            #     if matches:
-            #         print(f"Censorship detected: {', '.join(matches)}")
+            # If we got a censorship hint from the previous step, Prove it!
+            if transit_detected:
+                # Extract response body and parse HTML
+                response_body = req['response'].get('body', '')
+                soup = BeautifulSoup(response_body, 'html.parser')
+
+                # Extract text from paragraph tags
+                paragraphs = soup.find_all('p')
+                paragraph_texts = [p.get_text() for p in paragraphs]
+
+                # Translate each paragraph text up to 400 characters into English
+                translated_paragraphs = []
+                for text in paragraph_texts:
+                    if len(text) > 400:
+                        text = text[:400]  # Limit to 400 characters
+
+                    # Detect language of the text
+                    detected_lang = detect(text)
+
+                    # Translate only if detected language is not English
+                    if detected_lang != 'en':
+                        translated_text = model.translate(text, source_lang=detected_lang, target_lang='en')
+                        translated_paragraphs.append(translated_text)
+
+                    else:
+                        translated_paragraphs.append(text)
+
+                total_regexp_matches = 0
+                for translated_text in translated_paragraphs:
+                    matches = [phrase for phrase in BASE_CENSOR_PHRASES if
+                               re.search(phrase, translated_text, re.IGNORECASE)]
+
+                    # If matches are found, analyze further
+                    if matches:
+                        total_regexp_matches += 1
+                        debug(f"Blockpage Parsing Detected Phrases: {', '.join(matches)}")
+
+                # Update the Blockpage Score
+                tc_confidence_score += (total_regexp_matches / len(BASE_CENSOR_PHRASES)) * CONFIDENCE_SCORE_BLKPAGE_WEIGHT;
 
     if total_measurements < 1:
         print("No Measurements matched Applied Filters")
 
     else:
+        # Output Censored Request Count
         print(
-            f"Transit Censored Requests: {transit_censored}/{total_measurements}" +
+            f"Transit Censored Requests: {transit_censored}/{total_measurements} " +
             f"({(transit_censored / total_measurements) * 100}%)"
         )
 
+        # Output Confidence Score
+        print(f"Confidence Score: {tc_confidence_score}/{transit_censored} ({(tc_confidence_score / transit_censored) * 100}%)")
+
     # Return a JSON-like object lol
-    return {total_measurements, transit_censored}
+    return {total_measurements, transit_censored, tc_confidence_score}
