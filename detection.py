@@ -36,12 +36,14 @@ CONFIDENCE_SCORE_BLKPAGE_WEIGHT = 0.7
 
 # Base Censorship Phrases
 BASE_CENSOR_PHRASES = [
-    r"Blocked",
+    # Should be transit country specific, future impl.
+    r"gov.ru",
     r"Russian Federation",
-    r"Ministry of Telecommunications",
-    r"Court Decision",
-    r"Access Restricted",
-    r"Federal Service for Supervision"
+
+    # Other Common Phrases
+    r"restricted",
+    r"denied",
+    r"blocked"
 ]
 
 
@@ -129,35 +131,32 @@ def detect_transit_censorship(raw_measurements, httpOnly=True):
                 soup = BeautifulSoup(response_body, 'html.parser')
 
                 # Extract text from paragraph tags
-                paragraphs = soup.find_all('p')
-                paragraph_texts = [p.get_text() for p in paragraphs]
+                pagebody_text_raw = soup.get_text()
+                pagebody_text = ' '.join(pagebody_text_raw.split()) # Remove Extra Spaces
 
                 # Translate each paragraph text up to 400 characters into English
-                translated_paragraphs = []
-                for text in paragraph_texts:
-                    if len(text) > 400:
-                        text = text[:400]  # Limit to 400 characters
+                translated_text = pagebody_text    # Default is English
+                if len(pagebody_text) > 2000:
+                    pagebody_text = pagebody_text[:2000]  # Limit to 2000 characters
 
-                    # Detect language of the text
-                    detected_lang = detect(text)
-
-                    # Translate only if detected language is not English
+                # Detect language of the text, Translate if not English
+                if len(pagebody_text) > 50:
+                    detected_lang = detect(pagebody_text)
                     if detected_lang != 'en':
-                        translated_text = model.translate(text, source_lang=detected_lang, target_lang='en')
-                        translated_paragraphs.append(translated_text)
-
-                    else:
-                        translated_paragraphs.append(text)
+                        translated_text = model.translate(
+                            pagebody_text,
+                            source_lang=detected_lang,
+                            target_lang='en'
+                        )
 
                 total_regexp_matches = 0
-                for translated_text in translated_paragraphs:
-                    matches = [phrase for phrase in BASE_CENSOR_PHRASES if
-                               re.search(phrase, translated_text, re.IGNORECASE)]
+                matches = [phrase for phrase in BASE_CENSOR_PHRASES if
+                           re.search(phrase, translated_text, re.IGNORECASE)]
 
-                    # If matches are found, analyze further
-                    if matches:
-                        total_regexp_matches += 1
-                        debug(f"Blockpage Parsing Detected Phrases: {', '.join(matches)}")
+                # If matches are found, analyze further
+                if matches:
+                    total_regexp_matches += 1
+                    debug(f"Blockpage Parsing Detected Phrases: {', '.join(matches)}\n")
 
                 # Update the Blockpage Score
                 tc_confidence_score += (total_regexp_matches / len(BASE_CENSOR_PHRASES)) * CONFIDENCE_SCORE_BLKPAGE_WEIGHT;

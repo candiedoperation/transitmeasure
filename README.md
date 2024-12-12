@@ -26,9 +26,13 @@ Using Pre-process Dump File for further analysis...
 Step #3: Detecting Transit Censorship
 Potential Transit Tampering: FI -> DE | XZ -> FI instead of FI -> DE -> FI
 Potential Transit Tampering: FI -> US | XZ -> FI instead of FI -> US -> FI
+Blockpage Parsing Detected Phrases: gov.ru, Russian Federation, restricted, denied
+
 Potential Transit Tampering: FI -> US | XZ -> FI instead of FI -> US -> FI
+Blockpage Parsing Detected Phrases: gov.ru, Russian Federation, restricted, denied
+
 Transit Censored Requests: 3/4 (75.0%)
-Confidence Score: 0.8999999999999999/3 (30.0%)
+Confidence Score: 1.18/3 (39.33333333333333%)
 
 Final Report:
 To be Implemented
