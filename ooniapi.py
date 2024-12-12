@@ -59,7 +59,11 @@ def fetch_measurements_with_cache(probe_cc, start_date, end_date, probe_asn=None
 
     # Highly Likely that Preprocess Dump is Expired
     if os.path.exists(config.PREPROCESS_DUMP_FILE):
-        os.rename(config.PREPROCESS_DUMP_FILE, f"{config.PREPROCESS_DUMP_FILE}_bkp_{datetime.now(timezone.utc)}")
+        os.rename(
+            config.PREPROCESS_DUMP_FILE, 
+            f"{config.PREPROCESS_DUMP_FILE.replace('.json', '')}" + 
+            f"_bkp_{datetime.now(timezone.utc)}.json"
+        )
 
     return results
 

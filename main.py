@@ -47,7 +47,7 @@ def main():
     probe_cc = 'FI'  # Country code of the probe (e.g., FI for Finland)
     start_date = '2024-11-01'  # Start date for filtering measurements
     end_date = '2024-11-30'  # End date for filtering measurements
-    probe_asn = 'AS57043'  # Optional: ASN of the vantage point (e.g., AS12345)
+    probe_asn = None  # Optional: ASN of the vantage point (e.g., 'AS57043')
 
     # Step 1: Obtain censorship data with caching and filters
     measurements = fetch_measurements_with_cache(probe_cc, start_date, end_date, probe_asn)
