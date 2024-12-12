@@ -15,9 +15,27 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import re
 
+import nltk
 import requests
+from easynmt import EasyNMT
+from langdetect import detect
+from bs4 import BeautifulSoup
 
+# Initialize EasyNMT model for translation
+nltk.download('punkt_tab')
+model = EasyNMT('opus-mt')
+
+# Base Censorship Phrases
+BASE_CENSOR_PHRASES = [
+    r"Blocked",
+    r"Russian Federation",
+    r"Ministry of Telecommunications",
+    r"Court Decision",
+    r"Access Restricted",
+    r"Federal Service for Supervision"
+]
 
 def geolocate_ipv4(address):
     if not address:
@@ -56,34 +74,59 @@ def detect_transit_censorship(raw_measurements, httpOnly=True):
             # We're using this measurement
             total_measurements += 1
 
-            # Check for block page content
+            # Extract response body and parse HTML
             response_body = req['response'].get('body', '')
-            # if "Blocked by Russian Federation" in response_body:
-            #     print("Block page detected indicating Russian Federation censorship.")
-            #
-            #     # Geolocate IPs involved in this request/response cycle
-            #     request_ip = req['request']['headers'].get('Host', '')
-            #     response_ip = req['response']['headers'].get('Location', '')
-            #
-            #     # Geolocate both IPs
-            #     request_country = geolocate_ipv4(request_ip)
-            #     response_country = geolocate_ipv4(response_ip)
-            #
-            #     # Check for transit censorship
-            #     if request_country != origin_country and request_country is not None:
-            #         print(
-            #             f"Transit censorship detected: Request originated from {origin_country}, but was redirected through {request_country}.")
-            #
-            #     if response_country != origin_country and response_country is not None:
-            #         print(
-            #             f"Transit censorship detected: Response was served from {response_country}, differing from origin {origin_country}.")
+            soup = BeautifulSoup(response_body, 'html.parser')
+
+            # Extract text from paragraph tags
+            paragraphs = soup.find_all('p')
+            paragraph_texts = [p.get_text() for p in paragraphs]
+
+            # Translate each paragraph text up to 400 characters into English
+            translated_paragraphs = []
+            for text in paragraph_texts:
+                if len(text) > 400:
+                    text = text[:400]  # Limit to 400 characters
+
+                # Detect language of the text
+                detected_lang = detect(text)
+
+                # Translate only if detected language is not English
+                if detected_lang != 'en':
+                    translated_text = model.translate(text, source_lang=detected_lang, target_lang='en')
+                    translated_paragraphs.append(translated_text)
+
+                else:
+                    translated_paragraphs.append(text)
+
+            for translated_text in translated_paragraphs:
+                matches = [phrase for phrase in BASE_CENSOR_PHRASES if re.search(phrase, translated_text, re.IGNORECASE)]
+
+                # If matches are found, analyze further
+                if matches:
+                    print(f"Censorship detected: {', '.join(matches)}")
+
+                    # Geolocate IPs involved in redirection
+                    request_ip = req['request']['headers'].get('Host', '')
+                    response_ip = req['response']['headers'].get('Location', '')
+
+                    # request_country = geolocate_ipv4(request_ip)
+                    # response_country = geolocate_ipv4(response_ip)
+
+                    # Check if redirection IPs belong to a different country than probe_ccL weight shuld be low
+                    # if request_country and request_country != probe_cc:
+                    #     print(f"Request redirected through {request_country}, differing from origin {probe_cc}.")
+                    # if response_country and response_country != probe_cc:
+                    #     print(f"Response served from {response_country}, differing from origin {probe_cc}.")
 
     if total_measurements < 1:
         print("No Measurements matched Applied Filters")
 
     else:
         print(
-            f"Transit Censored Requests: {transit_censored}/{total_measurements} ({(transit_censored / total_measurements) * 100}%)")
+            f"Transit Censored Requests: {transit_censored}/{total_measurements}" +
+            f"({(transit_censored / total_measurements) * 100}%)"
+        )
 
     # Return a JSON-like object lol
     return {total_measurements, transit_censored}

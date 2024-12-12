@@ -1,2 +1,8 @@
+bs4
+nltk
 tqdm
+easynmt
 requests
+dnspython
+langdetect
+sacremoses
