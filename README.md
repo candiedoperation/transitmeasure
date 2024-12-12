@@ -1,5 +1,6 @@
 # TransitMeasure
-An approach to measure transit censorhip using OONI-provided datasets. Add a Link to the paper here, in the future.
+An approach to measure transit censorhip using OONI-provided datasets. To learn more about the approach, 
+its core ideas and the implementation methodologies, read the paper [_Do Transit Countries Censor Traffic? Measuring Internet Censorship in Transit_](https://www.overleaf.com/read/xvrvzrwmkdsz#4f19ea)  by clicking on the link.
 
 # Usage
 Modify the `main()` function as described below. Create a virual environment and install the 
@@ -85,3 +86,7 @@ Transit Censored Requests: 100/166 (60.24096385542169%)
 Confidence Score: 83.571428571428545/100 (83.57142857142854%)
 Censoring Country: Belgium (Regex Match)
 ```
+
+<br>
+© Copyright 2024 Atheesh Thirumalairajan<br>
+This is a free and open-source project
