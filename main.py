@@ -19,14 +19,6 @@ from cli import ANSIEscape
 from detection import detect_transit_censorship
 from ooniapi import fetch_measurements_with_cache, preprocess_data
 
-# Validate transit path using traceroute (requires external tool)
-def validate_transit_path(blockpages):
-    validated_results = []
-    for blockpage in blockpages:
-        # Use traceroute logic here to validate the transit path
-        validated_results.append(blockpage)  # Placeholder for actual validation logic
-    return validated_results
-
 def main():
     # Example usage: Specify country code, timeline filters, and vantage point ASN
     probe_cc = 'FI'  # Country code of the probe (e.g., FI for Finland)
@@ -47,12 +39,16 @@ def main():
     transit_censorship_cases = detect_transit_censorship(raw_measurements, httpOnly=True)
 
     # Step 4: Validate transit path analysis
-    validated_results = validate_transit_path(transit_censorship_cases)
+    # validated_results = validate_transit_path(transit_censorship_cases)
 
     # Output results for analysis
-    print("\nValidated Transit Censorship Cases:")
-    for result in validated_results:
-        print(result)
+    # print("\nValidated Transit Censorship Cases:")
+    # for result in validated_results:
+    #     print(result)
+
+    # Step 5: Generate the Report
+    print(ANSIEscape.BOLD + "\nFinal Report:" + ANSIEscape.END)
+    print("To be Implemented")
 
 if __name__ == "__main__":
     main()
