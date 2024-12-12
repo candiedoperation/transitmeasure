@@ -27,9 +27,6 @@ from datetime import datetime, timezone
 
 # Fetch measurements with caching, timeline, and vantage point filtering
 def fetch_measurements_with_cache(probe_cc, start_date, end_date, probe_asn=None, confirmed=True):
-    # Debug, List Step
-    print(ANSIEscape.BOLD + "Step #1: Applying Filters and Fetching OONI Data" + ANSIEscape.END)
-    
     cache = load_cache()
     cache_key = f"{probe_cc}_{start_date}_{end_date}_{probe_asn}_{confirmed}"
 
@@ -69,8 +66,6 @@ def fetch_measurements_with_cache(probe_cc, start_date, end_date, probe_asn=None
 
 # Preprocess data: filter relevant blockpages
 def preprocess_data(measurements, usedump=False):
-    # Log Step Progress
-    print(ANSIEscape.BOLD + "\nStep #2: Data Preprocessing" + ANSIEscape.END)
     if usedump and os.path.exists(config.PREPROCESS_DUMP_FILE):
         print("Using Pre-process Dump File for further analysis...")
         with open(config.PREPROCESS_DUMP_FILE, 'r') as file:

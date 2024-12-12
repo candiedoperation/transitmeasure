@@ -15,24 +15,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
-import re
+from cli import ANSIEscape
+from detection import detect_transit_censorship
 from ooniapi import fetch_measurements_with_cache, preprocess_data
-
-# Identify transit censorship using regex and IP geolocation (placeholder for IP geolocation)
-def identify_transit_censorship(blockpages):
-    transit_censorship_cases = []
-    for blockpage in blockpages:
-        html_content = blockpage.get('http_response_body', '')
-        if re.search(r"censorship", html_content, re.IGNORECASE):
-            # Example regex to detect censorship-related content
-            transit_censorship_cases.append(blockpage)
-    return transit_censorship_cases
-
-# Placeholder for IP geolocation (requires external service)
-def ip_geolocation(ip_address):
-    # Implement IP geolocation logic here
-    pass
 
 # Validate transit path using traceroute (requires external tool)
 def validate_transit_path(blockpages):
@@ -50,13 +35,16 @@ def main():
     probe_asn = None  # Optional: ASN of the vantage point (e.g., 'AS57043')
 
     # Step 1: Obtain censorship data with caching and filters
+    print(ANSIEscape.BOLD + "Step #1: Applying Filters and Fetching OONI Data" + ANSIEscape.END)
     measurements = fetch_measurements_with_cache(probe_cc, start_date, end_date, probe_asn)
 
     # Step 2: Preprocess data
-    blockpages = preprocess_data(measurements, usedump=True)
+    print(ANSIEscape.BOLD + "\nStep #2: Data Preprocessing" + ANSIEscape.END)
+    raw_measurements = preprocess_data(measurements, usedump=True)
 
     # Step 3: Identify transit censorship
-    transit_censorship_cases = identify_transit_censorship(blockpages)
+    print(ANSIEscape.BOLD + "\nStep #3: Detecting Transit Censorship" + ANSIEscape.END)
+    transit_censorship_cases = detect_transit_censorship(raw_measurements, httpOnly=True)
 
     # Step 4: Validate transit path analysis
     validated_results = validate_transit_path(transit_censorship_cases)
