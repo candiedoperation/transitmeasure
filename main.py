@@ -21,7 +21,7 @@ from ooniapi import fetch_measurements_with_cache, preprocess_data
 
 def main():
     # Example usage: Specify country code, timeline filters, and vantage point ASN
-    probe_cc = 'EE'  # Country code of the probe (e.g., FI for Finland)
+    probe_cc = 'LU'  # Country code of the probe (e.g., FI for Finland)
     start_date = '2023-03-01'  # Start date for filtering measurements
     end_date = '2023-12-01'  # End date for filtering measurements
     probe_asn = None  # Optional: ASN of the vantage point (e.g., 'AS57043')

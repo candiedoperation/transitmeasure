@@ -21,7 +21,7 @@ Step #1: Applying Filters and Fetching OONI Data
 Downloading OONI Measurements for EE_2023-03-01_2023-12-01_None_True...
 
 Step #2: Data Preprocessing
-Fetching Raw Reports: 100%|██████████| 66/66 [01:09<00:00,  1.05s/measurement, current=66]
+Fetching Raw Reports: 100%|█████████████████| 66/66 [01:09<00:00,  1.05s/measurement, current=66]
 Downloaded 66 Raw Reports for Analysis
 
 Step #3: Detecting Transit Censorship

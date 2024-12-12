@@ -39,11 +39,13 @@ BASE_CENSOR_PHRASES = [
     # Should be transit country specific, future impl.
     r"gov.ru",
     r"Russian Federation",
+    r"Belgian Legislation",
 
     # Other Common Phrases
     r"restricted",
     r"denied",
-    r"blocked"
+    r"blocked",
+    r"illegal"
 ]
 
 
