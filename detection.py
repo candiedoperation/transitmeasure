@@ -17,8 +17,11 @@
 """
 import re
 
+import ipaddress
 import nltk
 import requests
+import dns.resolver
+from cli import debug
 from easynmt import EasyNMT
 from langdetect import detect
 from bs4 import BeautifulSoup
@@ -26,6 +29,10 @@ from bs4 import BeautifulSoup
 # Initialize EasyNMT model for translation
 nltk.download('punkt_tab')
 model = EasyNMT('opus-mt')
+
+# Confidence Scores: Should Add up to 1
+CONFIDENCE_SCORE_IPCHECK_WEIGHT = 0.3
+CONFIDENCE_SCORE_BLKPAGE_WEIGHT = 0.7
 
 # Base Censorship Phrases
 BASE_CENSOR_PHRASES = [
@@ -36,6 +43,24 @@ BASE_CENSOR_PHRASES = [
     r"Access Restricted",
     r"Federal Service for Supervision"
 ]
+
+
+def nslookup_v4(hostname):
+    # Check if hostname is an IP Address
+    try:
+        ipaddress.ip_address(hostname)
+        return hostname
+
+    # If not an IP address, proceed with DNS resolution
+    except ValueError:
+        try:
+            # Query for A records (IPv4 addresses)
+            answers = dns.resolver.resolve(hostname, 'A')
+            return answers[0].to_text()
+
+        except Exception as e:
+            return "0.0.0.0"
+
 
 def geolocate_ipv4(address):
     if not address:
@@ -53,6 +78,7 @@ def geolocate_ipv4(address):
 
 def detect_transit_censorship(raw_measurements, httpOnly=True):
     # Statistics
+    tc_confidence_score = 0
     total_measurements = 0
     transit_censored = 0
 
@@ -74,50 +100,59 @@ def detect_transit_censorship(raw_measurements, httpOnly=True):
             # We're using this measurement
             total_measurements += 1
 
-            # Extract response body and parse HTML
-            response_body = req['response'].get('body', '')
-            soup = BeautifulSoup(response_body, 'html.parser')
+            # DNS and IP Checks First
+            request_ip = req['request']['headers'].get('Host', '')
+            response_ip = req['response']['headers'].get('Location', '')
 
-            # Extract text from paragraph tags
-            paragraphs = soup.find_all('p')
-            paragraph_texts = [p.get_text() for p in paragraphs]
+            serverhost_country = geolocate_ipv4(nslookup_v4(request_ip))
+            actualresponse_country = geolocate_ipv4(nslookup_v4(response_ip))
 
-            # Translate each paragraph text up to 400 characters into English
-            translated_paragraphs = []
-            for text in paragraph_texts:
-                if len(text) > 400:
-                    text = text[:400]  # Limit to 400 characters
+            # Transit Detected State
+            transit_detected = False
 
-                # Detect language of the text
-                detected_lang = detect(text)
+            # Check if redirection IPs belong to a different country than origin_country
+            if serverhost_country != actualresponse_country:
+                transit_detected = True
+                tc_confidence_score
 
-                # Translate only if detected language is not English
-                if detected_lang != 'en':
-                    translated_text = model.translate(text, source_lang=detected_lang, target_lang='en')
-                    translated_paragraphs.append(translated_text)
+                # Log the Results, if needed
+                debug(
+                    f"Potential Transit Tampering: {origin_country} -> {serverhost_country} | {actualresponse_country} -> {origin_country} " +
+                    f"instead of {origin_country} -> {serverhost_country} -> {origin_country}"
+                )
 
-                else:
-                    translated_paragraphs.append(text)
-
-            for translated_text in translated_paragraphs:
-                matches = [phrase for phrase in BASE_CENSOR_PHRASES if re.search(phrase, translated_text, re.IGNORECASE)]
-
-                # If matches are found, analyze further
-                if matches:
-                    print(f"Censorship detected: {', '.join(matches)}")
-
-                    # Geolocate IPs involved in redirection
-                    request_ip = req['request']['headers'].get('Host', '')
-                    response_ip = req['response']['headers'].get('Location', '')
-
-                    # request_country = geolocate_ipv4(request_ip)
-                    # response_country = geolocate_ipv4(response_ip)
-
-                    # Check if redirection IPs belong to a different country than probe_ccL weight shuld be low
-                    # if request_country and request_country != probe_cc:
-                    #     print(f"Request redirected through {request_country}, differing from origin {probe_cc}.")
-                    # if response_country and response_country != probe_cc:
-                    #     print(f"Response served from {response_country}, differing from origin {probe_cc}.")
+            # # Extract response body and parse HTML
+            # response_body = req['response'].get('body', '')
+            # soup = BeautifulSoup(response_body, 'html.parser')
+            #
+            # # Extract text from paragraph tags
+            # paragraphs = soup.find_all('p')
+            # paragraph_texts = [p.get_text() for p in paragraphs]
+            #
+            # # Translate each paragraph text up to 400 characters into English
+            # translated_paragraphs = []
+            # for text in paragraph_texts:
+            #     if len(text) > 400:
+            #         text = text[:400]  # Limit to 400 characters
+            #
+            #     # Detect language of the text
+            #     detected_lang = detect(text)
+            #
+            #     # Translate only if detected language is not English
+            #     if detected_lang != 'en':
+            #         translated_text = model.translate(text, source_lang=detected_lang, target_lang='en')
+            #         translated_paragraphs.append(translated_text)
+            #
+            #     else:
+            #         translated_paragraphs.append(text)
+            #
+            # for translated_text in translated_paragraphs:
+            #     matches = [phrase for phrase in BASE_CENSOR_PHRASES if
+            #                re.search(phrase, translated_text, re.IGNORECASE)]
+            #
+            #     # If matches are found, analyze further
+            #     if matches:
+            #         print(f"Censorship detected: {', '.join(matches)}")
 
     if total_measurements < 1:
         print("No Measurements matched Applied Filters")

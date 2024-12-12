@@ -4,5 +4,6 @@ tqdm
 easynmt
 requests
 dnspython
+ipaddress
 langdetect
 sacremoses
