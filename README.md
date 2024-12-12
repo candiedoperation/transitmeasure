@@ -18,21 +18,26 @@ def main():
 # Sample Output
 ```commandline
 Step #1: Applying Filters and Fetching OONI Data
-Using cached results for: FI_2024-10-01_2024-10-30_None_True
+Downloading OONI Measurements for EE_2023-03-01_2023-12-01_None_True...
 
 Step #2: Data Preprocessing
-Using Pre-process Dump File for further analysis...
+Fetching Raw Reports: 100%|██████████| 66/66 [01:09<00:00,  1.05s/measurement, current=66]
+Downloaded 66 Raw Reports for Analysis
 
 Step #3: Detecting Transit Censorship
-Potential Transit Tampering: FI -> DE | XZ -> FI instead of FI -> DE -> FI
-Potential Transit Tampering: FI -> US | XZ -> FI instead of FI -> US -> FI
+Potential Transit Tampering: EE -> RU | XZ -> EE instead of EE -> RU -> EE
 Blockpage Parsing Detected Phrases: gov.ru, Russian Federation, restricted, denied
 
-Potential Transit Tampering: FI -> US | XZ -> FI instead of FI -> US -> FI
+Potential Transit Tampering: EE -> DE | XZ -> EE instead of EE -> DE -> EE
+Potential Transit Tampering: EE -> RU | XZ -> EE instead of EE -> RU -> EE
 Blockpage Parsing Detected Phrases: gov.ru, Russian Federation, restricted, denied
 
-Transit Censored Requests: 3/4 (75.0%)
-Confidence Score: 1.18/3 (39.33333333333333%)
+Potential Transit Tampering: EE -> US | XZ -> EE instead of EE -> US -> EE
+Potential Transit Tampering: EE -> RU | XZ -> EE instead of EE -> RU -> EE
+Blockpage Parsing Detected Phrases: gov.ru, Russian Federation, restricted, denied
+
+Transit Censored Requests: 3/6 (50.0%)
+Confidence Score: 2.4000000000000004/3 (80.00000000000001%)
 
 Final Report:
 To be Implemented

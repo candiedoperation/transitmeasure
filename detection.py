@@ -31,8 +31,8 @@ nltk.download('punkt_tab')
 model = EasyNMT('opus-mt')
 
 # Confidence Scores: Should Add up to 1
-CONFIDENCE_SCORE_IPCHECK_WEIGHT = 0.3
-CONFIDENCE_SCORE_BLKPAGE_WEIGHT = 0.7
+CONFIDENCE_SCORE_IPCHECK_WEIGHT = 0.0
+CONFIDENCE_SCORE_BLKPAGE_WEIGHT = 1.0
 
 # Base Censorship Phrases
 BASE_CENSOR_PHRASES = [
@@ -87,79 +87,88 @@ def detect_transit_censorship(raw_measurements, httpOnly=True):
     for raw_measurement in raw_measurements:
         # Test Parameters
         destination = raw_measurement['input']
+        report_id = raw_measurement['report_id']
         origin_country = raw_measurement['probe_cc']
         measurement_requests = raw_measurement['test_keys']['requests']
 
         for req in measurement_requests:
-            # Apply TCP Transport Filter
-            if req['request']['x_transport'] != 'tcp':
-                continue
+            try:
+                # Apply TCP Transport Filter
+                if req['request']['x_transport'] != 'tcp':
+                    continue
 
-            # Apply HTTP Only Filters
-            if httpOnly and (not destination.startswith("http://")):
-                continue
+                # Apply HTTP Only Filters
+                if httpOnly and (not destination.startswith("http://")):
+                    continue
 
-            # We're using this measurement
-            total_measurements += 1
+                # We're using this measurement
+                total_measurements += 1
 
-            # DNS and IP Checks First
-            request_ip = req['request']['headers'].get('Host', '')
-            response_ip = req['response']['headers'].get('Location', '')
+                # DNS and IP Checks First
+                request_ip = req['request']['headers'].get('Host', '')
+                response_ip = req['response']['headers'].get('Location', '')
 
-            serverhost_country = geolocate_ipv4(nslookup_v4(request_ip))
-            actualresponse_country = geolocate_ipv4(nslookup_v4(response_ip))
+                serverhost_country = geolocate_ipv4(nslookup_v4(request_ip))
+                actualresponse_country = geolocate_ipv4(nslookup_v4(response_ip))
 
-            # Transit Detected State
-            transit_detected = False
+                # Transit Detected State
+                transit_detected = False
 
-            # Check if redirection IPs belong to a different country than origin_country
-            if serverhost_country != actualresponse_country:
-                transit_detected = True
-                transit_censored += 1
-                tc_confidence_score += CONFIDENCE_SCORE_IPCHECK_WEIGHT
+                # Check if redirection IPs belong to a different country than origin_country
+                if serverhost_country != actualresponse_country:
+                    transit_detected = True
+                    if CONFIDENCE_SCORE_IPCHECK_WEIGHT != 0:
+                        transit_censored += 1
+                        tc_confidence_score += CONFIDENCE_SCORE_IPCHECK_WEIGHT
 
-                # Log the Results, if needed
-                debug(
-                    f"Potential Transit Tampering: {origin_country} -> {serverhost_country} | {actualresponse_country} -> {origin_country} " +
-                    f"instead of {origin_country} -> {serverhost_country} -> {origin_country}"
-                )
+                    # Log the Results, if needed
+                    debug(
+                        f"Potential Transit Tampering: {origin_country} -> {serverhost_country} | {actualresponse_country} -> {origin_country} " +
+                        f"instead of {origin_country} -> {serverhost_country} -> {origin_country}"
+                    )
 
-            # If we got a censorship hint from the previous step, Prove it!
-            if transit_detected:
-                # Extract response body and parse HTML
-                response_body = req['response'].get('body', '')
-                soup = BeautifulSoup(response_body, 'html.parser')
+                # If we got a censorship hint from the previous step, Prove it!
+                if transit_detected:
+                    # Extract response body and parse HTML
+                    response_body = req['response'].get('body', '')
+                    soup = BeautifulSoup(response_body, 'html.parser', from_encoding='utf-8')
 
-                # Extract text from paragraph tags
-                pagebody_text_raw = soup.get_text()
-                pagebody_text = ' '.join(pagebody_text_raw.split()) # Remove Extra Spaces
+                    # Extract text from paragraph tags
+                    pagebody_text_raw = soup.get_text()
+                    pagebody_text = ' '.join(pagebody_text_raw.split())  # Remove Extra Spaces
 
-                # Translate each paragraph text up to 400 characters into English
-                translated_text = pagebody_text    # Default is English
-                if len(pagebody_text) > 2000:
-                    pagebody_text = pagebody_text[:2000]  # Limit to 2000 characters
+                    # Translate each paragraph text up to 400 characters into English
+                    translated_text = pagebody_text  # Default is English
+                    if len(pagebody_text) > 2000:
+                        pagebody_text = pagebody_text[:2000]  # Limit to 2000 characters
 
-                # Detect language of the text, Translate if not English
-                if len(pagebody_text) > 50:
-                    detected_lang = detect(pagebody_text)
-                    if detected_lang != 'en':
-                        translated_text = model.translate(
-                            pagebody_text,
-                            source_lang=detected_lang,
-                            target_lang='en'
-                        )
+                    # Detect language of the text, Translate if not English
+                    if len(pagebody_text) > 50:
+                        detected_lang = detect(pagebody_text)
+                        if detected_lang != 'en':
+                            translated_text = model.translate(
+                                pagebody_text,
+                                source_lang=detected_lang,
+                                target_lang='en'
+                            )
 
-                total_regexp_matches = 0
-                matches = [phrase for phrase in BASE_CENSOR_PHRASES if
-                           re.search(phrase, translated_text, re.IGNORECASE)]
+                    # Log Translated text for debugging, Improving Base Phrases
+                    debug(f"Translated Text: [{destination}] {translated_text}", level=3)
 
-                # If matches are found, analyze further
-                if matches:
-                    total_regexp_matches += 1
-                    debug(f"Blockpage Parsing Detected Phrases: {', '.join(matches)}\n")
+                    matches = [phrase for phrase in BASE_CENSOR_PHRASES if
+                               re.search(phrase, translated_text, re.IGNORECASE)]
 
-                # Update the Blockpage Score
-                tc_confidence_score += (total_regexp_matches / len(BASE_CENSOR_PHRASES)) * CONFIDENCE_SCORE_BLKPAGE_WEIGHT;
+                    # If matches are found, Update Blockpage Scores
+                    if len(matches) > 0:
+                        debug(f"Blockpage Parsing Detected Phrases: {', '.join(matches)}\n")
+                        tc_confidence_score += (len(matches) / len(
+                            BASE_CENSOR_PHRASES)) * CONFIDENCE_SCORE_BLKPAGE_WEIGHT
+
+                        if CONFIDENCE_SCORE_IPCHECK_WEIGHT == 0:
+                            transit_censored += 1
+
+            except:
+                print(f"Parse Exception: {destination} [{report_id}]")
 
     if total_measurements < 1:
         print("No Measurements matched Applied Filters")

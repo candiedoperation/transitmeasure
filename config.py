@@ -20,6 +20,7 @@ from os import path
 
 # Debug and Caching Config
 DEBUG = True
+DEBUG_LEVEL = 3
 CACHE_DIR = "file_cache/"
 CACHE_FILE = path.join(CACHE_DIR, "ooni_cache.json")
 PREPROCESS_DUMP_FILE = path.join(CACHE_DIR, "preprocessing_dump.json")

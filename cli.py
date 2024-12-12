@@ -33,6 +33,6 @@ class ANSIEscape:
    END = '\033[0m'
 
 # Define the CLI Debug Routine
-def debug(value):
-   if config.DEBUG:
+def debug(value, level=1):
+   if config.DEBUG and level <= config.DEBUG_LEVEL:
       print(value)
