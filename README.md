@@ -21,7 +21,7 @@ Step #1: Applying Filters and Fetching OONI Data
 Downloading OONI Measurements for EE_2023-03-01_2023-12-01_None_True...
 
 Step #2: Data Preprocessing
-Fetching Raw Reports: 100%|█████████████████| 66/66 [01:09<00:00,  1.05s/measurement, current=66]
+Fetching Raw Reports: 100%|██████████████| 66/66 [01:09<00:00,  1.05s/measurement, current=66]
 Downloaded 66 Raw Reports for Analysis
 
 Step #3: Detecting Transit Censorship
@@ -41,4 +41,47 @@ Confidence Score: 2.4000000000000004/3 (80.00000000000001%)
 
 Final Report:
 To be Implemented
+```
+
+# Sample Test Results
+```
+==== TEST 01 ====
+probe_cc = 'FI'
+start_date = '2024-01-01'
+end_date = '2024-12-31'
+
+22 Raw Reports
+Transit Censored Requests: 7/22 (31.818181818181817%)
+Confidence Score: 4.2/7 (60.0%)
+Censoring Country: Russia (Translation Auto-detect, Regex Match)
+
+==== TEST 02 ====
+probe_cc = 'JP'                                                    
+start_date = '2023-01-01'                                         
+end_date = '2023-12-31'   
+
+27 Raw Reports
+Transit Censored Requests: 1/27 (3.7037037037037033%)
+Confidence Score: 0.2/1 (20.0%)
+Censoring Country: Turkey (Translation API auto-detect)
+
+==== TEST 03 ====
+probe_cc = 'EE'
+start_date = '2023-03-01'
+end_date = '2023-12-31'
+
+6 Raw Reports
+Transit Censored Requests: 3/6 (50.0%)
+Confidence Score: 2.4000000000000004/3 (80.00000000000001%)
+Censoring Country: Russia (Translation Auto-detect, Regex Match)
+
+==== TEST 04 ====
+probe_cc = 'LU'
+start_date = '2023-03-01'
+end_date = '2023-12-31'
+
+166 Raw Reports
+Transit Censored Requests: 100/166 (60.24096385542169%)
+Confidence Score: 83.571428571428545/100 (83.57142857142854%)
+Censoring Country: Belgium (Regex Match)
 ```
