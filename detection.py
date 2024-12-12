@@ -16,6 +16,20 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import requests
 
-# This file consists of routines that take specific
-# inputs to detect transit censorship.
+def geolocate_ipv4(address):
+    if not address:
+        raise "Invalid IP Address"
+
+    # Using the ip2c.org API (Change Backend, if needed)
+    response = requests.get(f'https://ip2c.org/{address}')
+    response.raise_for_status()
+
+    # Parse Result. Sample Format: 1;RU;RUS;Russian Federation (the)
+    geo_result = response.text.split(';')
+    country_code = geo_result[1]
+    return country_code
+
+if __name__ == "__main__":
+    print(geolocate_ipv4('188.186.146.208'))

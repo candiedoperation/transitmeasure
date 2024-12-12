@@ -1,2 +1,4 @@
 __pycache__/
 file_cache/
+.venv/
+.idea/

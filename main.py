@@ -45,8 +45,8 @@ def validate_transit_path(blockpages):
 def main():
     # Example usage: Specify country code, timeline filters, and vantage point ASN
     probe_cc = 'FI'  # Country code of the probe (e.g., FI for Finland)
-    start_date = '2024-11-01'  # Start date for filtering measurements
-    end_date = '2024-11-30'  # End date for filtering measurements
+    start_date = '2024-10-01'  # Start date for filtering measurements
+    end_date = '2024-10-30'  # End date for filtering measurements
     probe_asn = None  # Optional: ASN of the vantage point (e.g., 'AS57043')
 
     # Step 1: Obtain censorship data with caching and filters
